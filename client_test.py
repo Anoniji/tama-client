@@ -83,12 +83,12 @@ logger.prt('info', 'Init Connexion')
 connect()
 
 while True:
-    print('loop')
-    time.sleep(30)
-
-
-
-
+    msg = input('msg> ')
+    SOCKET.send(zlib.compress(b'timestamp:' + str(time.time()).encode() + b';data:' + msg.encode()))
+    logger.prt('warning', 'Sending "' + msg + '"...')
+    data = SOCKET.recv(BUFFER_SIZE)
+    zdata = zlib.decompress(data).decode()
+    logger.prt('warning', 'Reveive: ' + zdata)
 
 
 # while True:
