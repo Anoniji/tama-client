@@ -71,6 +71,10 @@ def connect():
             logger.prt('success', 'Connected')
             return True
 
+        elif check == 'client_invalid' or check == 'client_exist' :
+            logger.prt('error', 'Eject by server')
+            sys.exit(0)
+
         SOCKET = False
         return False
 

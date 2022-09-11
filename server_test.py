@@ -8,6 +8,9 @@ Creative Commons Zero v1.0 Universal
 https://creativecommons.org/publicdomain/zero/1.0/
 """
 
+import gevent
+from gevent import monkey
+
 import base64
 import zlib
 from cryptography.fernet import Fernet
@@ -15,6 +18,10 @@ from cryptography.fernet import Fernet
 import socket
 from logger import Logger
 
+if gevent.version_info[0] == 0:
+    monkey.patch_all()
+else:
+    monkey.patch_all(subprocess=True)
 
 logger = Logger()
 TCP_IP = '127.0.0.1'
@@ -22,16 +29,9 @@ TCP_PORT = 5005
 BUFFER_SIZE = 1024  # Normally 1024, but we want fast response
 CLIENTS = {}
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-s.bind((TCP_IP, TCP_PORT))
-s.listen(1)
-logger.prt('success', 'Server start: OK')
-
-while True:
-
-    logger.prt('info', 'Waiting connexion...')
-    conn, addr = s.accept()
-    logger.prt('success', 'Connection address: ' + str(addr))
+def socket_spawn(conn, addr):
+    global BUFFER_SIZE, CLIENTS
+    global logger
 
     while True:
         try:
@@ -64,15 +64,31 @@ while True:
                     except Exception:
                         conn.send(CLIENTS[machine_id]['key'].encrypt(b'client_invalid'))
                         logger.prt('success', 'machine reject (invalid)')
+                        break
 
                 else:
                     conn.send(CLIENTS[machine_id]['key'].encrypt(b'client_exist'))
                     logger.prt('error', 'machine reject (exist)')
+                    break
 
             else:
-                conn.send(data)  # echo
+                conn.send(data)
 
         else:
-            conn.send(b'empty_data')  # echo
+            conn.send(b'empty_data')
 
-conn.close()
+    conn.close()
+
+
+s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+s.bind((TCP_IP, TCP_PORT))
+s.listen(1)
+logger.prt('success', 'Server start: OK')
+
+while True:
+
+    logger.prt('info', 'Waiting New Connexion...')
+    conn, addr = s.accept()
+
+    gevent.spawn(socket_spawn, conn, addr)
+    logger.prt('success', 'Connection address: ' + str(addr))
