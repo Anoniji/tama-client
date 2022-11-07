@@ -84,31 +84,24 @@ def connect():
 
 
 logger.prt('info', 'Init Connexion')
-connect()
+if connect():
+    while True:
+        try:
+            msg = input('msg> ')
+            data_msg = b'timestamp:' + str(time.time()).encode() + b';data:' + msg.encode()
+            SOCKET.send(zlib.compress(CLIENT_KEY.encrypt(data_msg)))
+            logger.prt('warning', 'Sending "' + msg + '"...')
+            data = SOCKET.recv(BUFFER_SIZE)
+            zdata = CLIENT_KEY.decrypt(zlib.decompress(data)).decode()
+            logger.prt('warning', 'Reveive: ' + zdata)
 
-while True:
-    msg = input('msg> ')
-    SOCKET.send(zlib.compress(b'timestamp:' + str(time.time()).encode() + b';data:' + msg.encode()))
-    logger.prt('warning', 'Sending "' + msg + '"...')
-    data = SOCKET.recv(BUFFER_SIZE)
-    zdata = zlib.decompress(data).decode()
-    logger.prt('warning', 'Reveive: ' + zdata)
+        except Exception as e:
+            while not SOCKET:
+                logger.prt('info', 'Reconnection in 3 secs...')
+                time.sleep(3)
+                connect()
 
-
-# while True:
-#     try:
-#         if SOCKET:
-#             logger.prt('info', 'Send Message')
-#             SOCKET.send(MESSAGE)
-#             data = SOCKET.recv(BUFFER_SIZE)
-#             time.sleep(3)
-#             logger.prt('info', 'received data: ' + str(data.decode()))
-#         else:
-#             connect()
-#     except Exception as e:
-#         while not SOCKET:
-#             logger.prt('info', 'Reconnection in 3 secs...')
-#             time.sleep(3)
-#             connect()
+else:
+    logger.prt('error', 'Not connect...')
 
 SOCKET.close()
