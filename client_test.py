@@ -18,6 +18,8 @@ import zlib
 from cryptography.fernet import Fernet
 
 import socket
+import struct
+import pickle
 from logger import Logger
 
 logger = Logger()
@@ -83,6 +85,11 @@ def connect():
         return False
 
 
+buffer_stk = {}
+count = 0
+splited = False
+
+
 logger.prt('info', 'Init Connexion')
 if connect():
     while True:
@@ -91,11 +98,30 @@ if connect():
             data_msg = b'timestamp:' + str(time.time()).encode() + b';data:' + msg.encode()
             SOCKET.send(zlib.compress(CLIENT_KEY.encrypt(data_msg)))
             logger.prt('warning', 'Sending "' + msg + '"...')
-            data = SOCKET.recv(BUFFER_SIZE)
+
+            print('wait size')
+            data_size = struct.unpack('>I', SOCKET.recv(4))[0]
+            RECV_PAYLOAD = b""
+            reamining_payload_size = data_size
+
+            print('wait buffer')
+            while reamining_payload_size != 0:
+                RECV_PAYLOAD += SOCKET.recv(reamining_payload_size)
+                reamining_payload_size = data_size - len(RECV_PAYLOAD)
+            data = pickle.loads(RECV_PAYLOAD)
+
+            print('read>')
+            print(str(data))
             zdata = CLIENT_KEY.decrypt(zlib.decompress(data)).decode()
             logger.prt('warning', 'Reveive: ' + zdata)
 
         except Exception as e:
+
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+            print(e)
+            print(exc_type, fname, exc_tb.tb_lineno)
+
             while not SOCKET:
                 logger.prt('info', 'Reconnection in 3 secs...')
                 time.sleep(3)
@@ -104,4 +130,5 @@ if connect():
 else:
     logger.prt('error', 'Not connect...')
 
-SOCKET.close()
+if SOCKET:
+    SOCKET.close()
