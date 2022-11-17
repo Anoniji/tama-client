@@ -9,6 +9,7 @@ https://creativecommons.org/publicdomain/zero/1.0/
 """
 
 import os
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import sys
 import time
 
@@ -19,16 +20,18 @@ from cryptography.fernet import Fernet
 
 import socket
 import struct
-import pickle
+from io import BytesIO
 from logger import Logger
+
+import pygame
 
 logger = Logger()
 TCP_IP = '127.0.0.1'
 TCP_PORT = 5005
 BUFFER_SIZE = 1024
-MESSAGE = b"Hello, World!"
 SOCKET = False
 CLIENT_KEY = False
+pygame.mixer.init(11025) # 44100
 
 
 def machine_id():
@@ -100,20 +103,32 @@ if connect():
             logger.prt('warning', 'Sending "' + msg + '"...')
 
             print('wait size')
-            data_size = struct.unpack('>I', SOCKET.recv(4))[0]
+            data_size = struct.unpack('>Q', SOCKET.recv(8))[0]
             RECV_PAYLOAD = b""
             reamining_payload_size = data_size
 
-            print('wait buffer')
-            while reamining_payload_size != 0:
+            print('wait buffer', reamining_payload_size)
+            while reamining_payload_size > 0:
                 RECV_PAYLOAD += SOCKET.recv(reamining_payload_size)
                 reamining_payload_size = data_size - len(RECV_PAYLOAD)
-            data = pickle.loads(RECV_PAYLOAD)
+            data = RECV_PAYLOAD
 
             print('read>')
-            print(str(data))
             zdata = CLIENT_KEY.decrypt(zlib.decompress(data)).decode()
-            logger.prt('warning', 'Reveive: ' + zdata)
+
+            if 'votama:' in zdata:
+                logger.prt('warning', 'Reveive votama')
+                voice = zdata.split('votama:')[-1]
+                vdata = voice.encode().decode('unicode_escape').encode("raw_unicode_escape")
+
+                voice_data = BytesIO(vdata)
+                voice_data.name = "data.mp3"
+                voice_data.seek(0)
+
+                pygame.mixer.music.load(voice_data)
+                pygame.mixer.music.play()
+            else:
+                logger.prt('warning', 'Reveive: ' + zdata)
 
         except Exception as e:
 
