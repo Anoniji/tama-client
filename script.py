@@ -9,7 +9,8 @@ https://creativecommons.org/publicdomain/zero/1.0/
 """
 
 import os
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+
+os.environ["PYGAME_HIDE_SUPPORT_PROMPT"] = "1"
 import sys
 import time
 
@@ -25,125 +26,140 @@ from logger import Logger
 
 import pygame
 
-logger = Logger()
-TCP_IP = '127.0.0.1'
-TCP_PORT = 5005
-BUFFER_SIZE = 1024
-SOCKET = False
-CLIENT_KEY = False
-pygame.mixer.init(11025) # 44100
 
+class tama_client:
+    def __init__(self):
+        self.version = "20230519.1"
 
-def machine_id():
-    global CLIENT_KEY
+        self.logger = Logger()
+        self.TCP_IP = "127.0.0.1"
+        self.TCP_PORT = 5005
+        self.BUFFER_SIZE = 1024
+        self.SOCKET = False
+        self.CLIENT_KEY = False
 
-    try:
-        logger.prt('info', 'machine_id', 2)
-        if os.path.isfile('./.uuid'):
-            logger.prt('info', 'machine_id: exist', 2)
-            with open('./.uuid') as fdata:
-                uuid_key = fdata.readlines()[0].strip()
-        else:
-            logger.prt('info', 'machine_id: create', 2)
-            print('0')
-            uuid_key = base64.urlsafe_b64encode(
-                (str(uuid.uuid4())[0:32]).encode()
-            ).decode()
-            with open('./.uuid', 'w') as fdata:
-                fdata.write(uuid_key)
+        pygame.mixer.init(11025)  # 44100
 
-        logger.prt('info', 'uuid_key: ' + str(uuid_key), 3)
-        CLIENT_KEY = Fernet(uuid_key)
-        return uuid_key
-    except Exception as e:
-        print(e)
-        sys.exit(0)
+    def machine_id(self):
+        try:
+            self.logger.prt("info", "machine_id", 2)
+            if os.path.isfile("./.uuid"):
+                self.logger.prt("info", "machine_id: exist", 2)
+                with open("./.uuid") as fdata:
+                    uuid_key = fdata.readlines()[0].strip()
+            else:
+                self.logger.prt("info", "machine_id: create", 2)
+                print("0")
+                uuid_key = base64.urlsafe_b64encode(
+                    (str(uuid.uuid4())[0:32]).encode()
+                ).decode()
+                with open("./.uuid", "w") as fdata:
+                    fdata.write(uuid_key)
 
-
-def connect():
-    global SOCKET
-    logger.prt('info', 'Connecting to Server...')
-    try:
-        SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        SOCKET.connect((TCP_IP, TCP_PORT))
-
-        # init
-        compress_id = zlib.compress(b'connect:' + machine_id().encode())
-        SOCKET.send(compress_id)
-        data = SOCKET.recv(BUFFER_SIZE)
-        check = CLIENT_KEY.decrypt(data).decode()
-        if check == 'client_valid':
-            logger.prt('success', 'Connected')
-            return True
-
-        elif check == 'client_invalid' or check == 'client_exist' :
-            logger.prt('error', 'Eject by server (' + check + ')')
+            self.logger.prt("info", "uuid_key: " + str(uuid_key), 3)
+            self.CLIENT_KEY = Fernet(uuid_key)
+            return uuid_key
+        except Exception as e:
+            print(e)
             sys.exit(0)
 
-        SOCKET = False
-        return False
-
-    except Exception:
-        SOCKET = False
-        return False
-
-
-buffer_stk = {}
-count = 0
-splited = False
-
-
-logger.prt('info', 'Init Connexion')
-if connect():
-    while True:
+    def connect(self):
+        self.logger.prt("info", "Connecting to Server...")
         try:
-            msg = input('msg> ')
-            data_msg = b'timestamp:' + str(time.time()).encode() + b';data:' + msg.encode()
-            SOCKET.send(zlib.compress(CLIENT_KEY.encrypt(data_msg)))
-            logger.prt('warning', 'Sending "' + msg + '"...')
+            self.SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.SOCKET.connect((self.TCP_IP, self.TCP_PORT))
 
-            print('wait size')
-            data_size = struct.unpack('>Q', SOCKET.recv(8))[0]
-            RECV_PAYLOAD = b""
-            reamining_payload_size = data_size
+            # init
+            machine_id = self.machine_id()
 
-            print('wait buffer', reamining_payload_size)
-            while reamining_payload_size > 0:
-                RECV_PAYLOAD += SOCKET.recv(reamining_payload_size)
-                reamining_payload_size = data_size - len(RECV_PAYLOAD)
-            data = RECV_PAYLOAD
+            if not machine_id:
+                return False
 
-            print('read>')
-            zdata = CLIENT_KEY.decrypt(zlib.decompress(data)).decode()
+            compress_id = zlib.compress(b"connect:" + machine_id().encode())
+            self.SOCKET.send(compress_id)
+            data = self.SOCKET.recv(self.BUFFER_SIZE)
+            check = self.CLIENT_KEY.decrypt(data).decode()
+            if check == "client_valid":
+                self.logger.prt("success", "Connected")
+                return True
 
-            if 'votama:' in zdata:
-                logger.prt('warning', 'Reveive votama')
-                voice = zdata.split('votama:')[-1]
-                vdata = voice.encode().decode('unicode_escape').encode("raw_unicode_escape")
+            elif check == "client_invalid" or check == "client_exist":
+                self.logger.prt("error", "Eject by server (" + check + ")")
+                sys.exit(0)
 
-                voice_data = BytesIO(vdata)
-                voice_data.name = "data.mp3"
-                voice_data.seek(0)
+            self.SOCKET = False
+            return False
 
-                pygame.mixer.music.load(voice_data)
-                pygame.mixer.music.play()
-            else:
-                logger.prt('warning', 'Reveive: ' + zdata)
+        except Exception:
+            self.SOCKET = False
+            return False
 
-        except Exception as e:
 
-            exc_type, exc_obj, exc_tb = sys.exc_info()
-            fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
-            print(e)
-            print(exc_type, fname, exc_tb.tb_lineno)
+if __name__ == "__main__":
+    tama_client = tama_client()
+    tama_client.logger.prt("info", "Init Connexion")
+    if tama_client.connect():
+        while True:
+            try:
+                # dt:{R/A/N}{V/T}:{lang}:{text}
+                msg = input("msg> ")
+                data_msg = (
+                    b"timestamp:" + str(time.time()).encode() + b";data:" + msg.encode()
+                )
+                tama_client.SOCKET.send(
+                    zlib.compress(tama_client.CLIENT_KEY.encrypt(data_msg))
+                )
+                tama_client.logger.prt("warning", 'Sending "' + msg + '"...')
 
-            while not SOCKET:
-                logger.prt('info', 'Reconnection in 3 secs...')
-                time.sleep(3)
-                connect()
+                print("wait size")
+                data_size = struct.unpack(">Q", tama_client.SOCKET.recv(8))[0]
+                RECV_PAYLOAD = b""
+                reamining_payload_size = data_size
 
-else:
-    logger.prt('error', 'Not connect...')
+                print("wait buffer", reamining_payload_size)
+                while reamining_payload_size > 0:
+                    RECV_PAYLOAD += tama_client.SOCKET.recv(reamining_payload_size)
+                    reamining_payload_size = data_size - len(RECV_PAYLOAD)
+                data = RECV_PAYLOAD
 
-if SOCKET:
-    SOCKET.close()
+                print("read>")
+                zdata = tama_client.CLIENT_KEY.decrypt(zlib.decompress(data)).decode()
+
+                if "voice:" in zdata:
+                    tama_client.logger.prt("warning", "Reveive voice")
+                    voice = zdata.split("voice:")[-1]
+                    vdata = (
+                        voice.encode()
+                        .decode("unicode_escape")
+                        .encode("raw_unicode_escape")
+                    )
+
+                    voice_data = BytesIO(vdata)
+                    voice_data.name = "data.mp3"
+                    voice_data.seek(0)
+
+                    pygame.mixer.music.load(voice_data)
+                    pygame.mixer.music.play()
+                if "text:" in zdata:
+                    tama_client.logger.prt("warning", "Reveive text")
+                    text = zdata.split("text:")[-1]
+                    tama_client.logger.prt("info", "Text: " + text)
+                else:
+                    tama_client.logger.prt("warning", "Reveive: " + zdata)
+
+            except Exception as e:
+                exc_type, exc_obj, exc_tb = sys.exc_info()
+                fname = os.path.split(exc_tb.tb_frame.f_code.co_filename)[1]
+                print(e)
+                print(exc_type, fname, exc_tb.tb_lineno)
+
+                while not tama_client.SOCKET:
+                    tama_client.logger.prt("info", "Reconnection in 3 secs...")
+                    time.sleep(3)
+                    tama_client.connect()
+
+    else:
+        tama_client.logger.prt("error", "Not connect...")
+
+    if tama_client.SOCKET:
+        tama_client.SOCKET.close()
