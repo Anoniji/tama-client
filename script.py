@@ -32,6 +32,8 @@ class Client:
         self.version = "20230519.1"
 
         self.logger = Logger()
+        self.logger.log_nms = "Client"
+
         self.TCP_IP = "127.0.0.1"
         self.TCP_PORT = 5005
         self.BUFFER_SIZE = 1024
