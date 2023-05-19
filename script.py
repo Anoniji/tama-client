@@ -27,7 +27,7 @@ from logger import Logger
 import pygame
 
 
-class tama_client:
+class Client:
     def __init__(self):
         self.version = "20230519.1"
 
@@ -36,7 +36,7 @@ class tama_client:
         self.TCP_PORT = 5005
         self.BUFFER_SIZE = 1024
         self.SOCKET = False
-        self.CLIENT_KEY = False
+        self.Tclient_KEY = False
 
         pygame.mixer.init(11025)  # 44100
 
@@ -57,7 +57,7 @@ class tama_client:
                     fdata.write(uuid_key)
 
             self.logger.prt("info", "uuid_key: " + str(uuid_key), 3)
-            self.CLIENT_KEY = Fernet(uuid_key)
+            self.Tclient_KEY = Fernet(uuid_key)
             return uuid_key
         except Exception as e:
             print(e)
@@ -78,12 +78,12 @@ class tama_client:
             compress_id = zlib.compress(b"connect:" + machine_id().encode())
             self.SOCKET.send(compress_id)
             data = self.SOCKET.recv(self.BUFFER_SIZE)
-            check = self.CLIENT_KEY.decrypt(data).decode()
-            if check == "client_valid":
+            check = self.Tclient_KEY.decrypt(data).decode()
+            if check == "Tclient_valid":
                 self.logger.prt("success", "Connected")
                 return True
 
-            elif check == "client_invalid" or check == "client_exist":
+            elif check == "Tclient_invalid" or check == "Tclient_exist":
                 self.logger.prt("error", "Eject by server (" + check + ")")
                 sys.exit(0)
 
@@ -96,9 +96,9 @@ class tama_client:
 
 
 if __name__ == "__main__":
-    tama_client = tama_client()
-    tama_client.logger.prt("info", "Init Connexion")
-    if tama_client.connect():
+    Tclient = Client()
+    Tclient.logger.prt("info", "Init Connexion")
+    if Tclient.connect():
         while True:
             try:
                 # dt:{R/A/N}{V/T}:{lang}:{text}
@@ -106,27 +106,27 @@ if __name__ == "__main__":
                 data_msg = (
                     b"timestamp:" + str(time.time()).encode() + b";data:" + msg.encode()
                 )
-                tama_client.SOCKET.send(
-                    zlib.compress(tama_client.CLIENT_KEY.encrypt(data_msg))
+                Tclient.SOCKET.send(
+                    zlib.compress(Tclient.Tclient_KEY.encrypt(data_msg))
                 )
-                tama_client.logger.prt("warning", 'Sending "' + msg + '"...')
+                Tclient.logger.prt("warning", 'Sending "' + msg + '"...')
 
                 print("wait size")
-                data_size = struct.unpack(">Q", tama_client.SOCKET.recv(8))[0]
+                data_size = struct.unpack(">Q", Tclient.SOCKET.recv(8))[0]
                 RECV_PAYLOAD = b""
                 reamining_payload_size = data_size
 
                 print("wait buffer", reamining_payload_size)
                 while reamining_payload_size > 0:
-                    RECV_PAYLOAD += tama_client.SOCKET.recv(reamining_payload_size)
+                    RECV_PAYLOAD += Tclient.SOCKET.recv(reamining_payload_size)
                     reamining_payload_size = data_size - len(RECV_PAYLOAD)
                 data = RECV_PAYLOAD
 
                 print("read>")
-                zdata = tama_client.CLIENT_KEY.decrypt(zlib.decompress(data)).decode()
+                zdata = Tclient.Tclient_KEY.decrypt(zlib.decompress(data)).decode()
 
                 if "voice:" in zdata:
-                    tama_client.logger.prt("warning", "Reveive voice")
+                    Tclient.logger.prt("warning", "Reveive voice")
                     voice = zdata.split("voice:")[-1]
                     vdata = (
                         voice.encode()
@@ -141,11 +141,11 @@ if __name__ == "__main__":
                     pygame.mixer.music.load(voice_data)
                     pygame.mixer.music.play()
                 if "text:" in zdata:
-                    tama_client.logger.prt("warning", "Reveive text")
+                    Tclient.logger.prt("warning", "Reveive text")
                     text = zdata.split("text:")[-1]
-                    tama_client.logger.prt("info", "Text: " + text)
+                    Tclient.logger.prt("info", "Text: " + text)
                 else:
-                    tama_client.logger.prt("warning", "Reveive: " + zdata)
+                    Tclient.logger.prt("warning", "Reveive: " + zdata)
 
             except Exception as e:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
@@ -153,13 +153,13 @@ if __name__ == "__main__":
                 print(e)
                 print(exc_type, fname, exc_tb.tb_lineno)
 
-                while not tama_client.SOCKET:
-                    tama_client.logger.prt("info", "Reconnection in 3 secs...")
+                while not Tclient.SOCKET:
+                    Tclient.logger.prt("info", "Reconnection in 3 secs...")
                     time.sleep(3)
-                    tama_client.connect()
+                    Tclient.connect()
 
     else:
-        tama_client.logger.prt("error", "Not connect...")
+        Tclient.logger.prt("error", "Not connect...")
 
-    if tama_client.SOCKET:
-        tama_client.SOCKET.close()
+    if Tclient.SOCKET:
+        Tclient.SOCKET.close()
