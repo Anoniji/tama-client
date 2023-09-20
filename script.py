@@ -29,7 +29,7 @@ import pygame
 
 class Client:
     def __init__(self):
-        self.version = "20230519.1"
+        self.version = "20230920.1"
 
         self.logger = Logger()
         self.logger.log_nms = "Client"
@@ -77,10 +77,11 @@ class Client:
             if not machine_id:
                 return False
 
-            compress_id = zlib.compress(b"connect:" + machine_id().encode())
+            compress_id = zlib.compress(b"connect:" + machine_id.encode())
             self.SOCKET.send(compress_id)
             data = self.SOCKET.recv(self.BUFFER_SIZE)
             check = self.Tclient_KEY.decrypt(data).decode()
+
             if check == "Tclient_valid":
                 self.logger.prt("success", "Connected")
                 return True
