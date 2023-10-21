@@ -29,7 +29,7 @@ import pygame
 
 class Client:
     def __init__(self):
-        self.version = "20230920.1"
+        self.version = "20231021.1"
 
         self.logger = Logger()
         self.logger.log_nms = "Client"
@@ -73,7 +73,6 @@ class Client:
 
             # init
             machine_id = self.machine_id()
-
             if not machine_id:
                 return False
 
@@ -81,12 +80,11 @@ class Client:
             self.SOCKET.send(compress_id)
             data = self.SOCKET.recv(self.BUFFER_SIZE)
             check = self.Tclient_KEY.decrypt(data).decode()
-
-            if check == "Tclient_valid":
+            if check == "client_valid":
                 self.logger.prt("success", "Connected")
                 return True
 
-            elif check == "Tclient_invalid" or check == "Tclient_exist":
+            elif check == "client_invalid" or check == "client_exist":
                 self.logger.prt("error", "Eject by server (" + check + ")")
                 sys.exit(0)
 
