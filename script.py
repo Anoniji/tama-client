@@ -154,6 +154,9 @@ if __name__ == "__main__":
                     text = zdata.split("text:")[-1]
                     Tclient.logger.prt("info", "Text: " + text)
 
+                else:
+                    Tclient.logger.prt("info", "Command: " + zdata)
+
             except KeyboardInterrupt:
                 Tclient.logger.prt("info", "Stop by user...")
                 break
