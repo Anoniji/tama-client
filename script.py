@@ -34,7 +34,7 @@ class Client:
         self.logger = Logger()
         self.logger.log_nms = "Client"
 
-        self.TCP_IP = "127.0.0.1"
+        self.TCP_IP = "192.168.1.92"
         self.TCP_PORT = 5005
         self.BUFFER_SIZE = 1024
         self.SOCKET = False
@@ -80,6 +80,7 @@ class Client:
             self.SOCKET.send(compress_id)
             data = self.SOCKET.recv(self.BUFFER_SIZE)
             check = self.Tclient_KEY.decrypt(data).decode()
+
             if check == "client_valid":
                 self.logger.prt("success", "Connected")
                 return True
@@ -102,7 +103,7 @@ if __name__ == "__main__":
     if Tclient.connect():
         while True:
             try:
-                # dt:{R/A/N}{V/T}:{lang}:{text}
+                # data:{R/A/N}{V/T}:{lang}:{text}
                 msg = input("msg> ")
                 data_msg = (
                     b"timestamp:" + str(time.time()).encode() + b";data:" + msg.encode()
@@ -142,7 +143,7 @@ if __name__ == "__main__":
                     pygame.mixer.music.load(voice_data)
                     pygame.mixer.music.play()
                 if "text:" in zdata:
-                    Tclient.logger.prt("warning", "Reveive text")
+                    Tclient.logger.prt("warning", "Receive text")
                     text = zdata.split("text:")[-1]
                     Tclient.logger.prt("info", "Text: " + text)
                 else:
@@ -160,7 +161,7 @@ if __name__ == "__main__":
                     Tclient.connect()
 
     else:
-        Tclient.logger.prt("error", "Not connect...")
+        Tclient.logger.prt("error", "Eject by server")
 
     if Tclient.SOCKET:
         Tclient.SOCKET.close()
