@@ -69,6 +69,7 @@ class Client:
         self.logger.prt("info", "Connecting to Server...")
         try:
             self.SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.SOCKET.settimeout(10)
             self.SOCKET.connect((self.TCP_IP, self.TCP_PORT))
 
             # init
@@ -105,6 +106,9 @@ if __name__ == "__main__":
             try:
                 # data:{R/A/N}{V/T}:{lang}:{text}
                 msg = input("msg> ")
+                if msg == "close":
+                    break
+
                 data_msg = (
                     b"timestamp:" + str(
                         time.time()).encode() + b";data:" + msg.encode()
