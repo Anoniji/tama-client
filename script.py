@@ -128,7 +128,7 @@ if __name__ == "__main__":
                 zdata = Tclient.Tclient_KEY.decrypt(zlib.decompress(data)).decode()
 
                 if "voice:" in zdata:
-                    Tclient.logger.prt("warning", "Reveive voice")
+                    Tclient.logger.prt("warning", "Receive voice")
                     voice = zdata.split("voice:")[-1]
                     vdata = (
                         voice.encode()
@@ -142,12 +142,15 @@ if __name__ == "__main__":
 
                     pygame.mixer.music.load(voice_data)
                     pygame.mixer.music.play()
-                if "text:" in zdata:
+
+                elif "text:" in zdata:
                     Tclient.logger.prt("warning", "Receive text")
                     text = zdata.split("text:")[-1]
                     Tclient.logger.prt("info", "Text: " + text)
-                else:
-                    Tclient.logger.prt("warning", "Reveive: " + zdata)
+
+            except KeyboardInterrupt:
+                Tclient.logger.prt("info", "Stop by user...")
+                break
 
             except Exception as e:
                 exc_type, exc_obj, exc_tb = sys.exc_info()
