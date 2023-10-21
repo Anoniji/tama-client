@@ -106,7 +106,8 @@ if __name__ == "__main__":
                 # data:{R/A/N}{V/T}:{lang}:{text}
                 msg = input("msg> ")
                 data_msg = (
-                    b"timestamp:" + str(time.time()).encode() + b";data:" + msg.encode()
+                    b"timestamp:" + str(
+                        time.time()).encode() + b";data:" + msg.encode()
                 )
                 Tclient.SOCKET.send(
                     zlib.compress(Tclient.Tclient_KEY.encrypt(data_msg))
@@ -125,7 +126,8 @@ if __name__ == "__main__":
                 data = RECV_PAYLOAD
 
                 print("read>")
-                zdata = Tclient.Tclient_KEY.decrypt(zlib.decompress(data)).decode()
+                zdata = Tclient.Tclient_KEY.decrypt(
+                    zlib.decompress(data)).decode()
 
                 if "voice:" in zdata:
                     Tclient.logger.prt("warning", "Receive voice")
